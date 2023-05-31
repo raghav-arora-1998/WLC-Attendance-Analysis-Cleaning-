@@ -1,0 +1,625 @@
+---
+title: ""
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+# Student Athlete winter23 Analysis
+
+##Libraries Required:
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(openxlsx)
+```
+
+## Data Loading:
+
+```{r}
+winter23 <- read_excel('Winter 23 RAW.xlsx')
+```
+
+## Data Exploration & Wrangling
+
+What does the data frame look like:
+
+```{r}
+head(winter23)
+```
+
+Data Types for each column:
+
+```{r}
+str(winter23)
+```
+
+Converting Registration Date to Date data type:
+
+```{r}
+winter23$`Registration Date` <- as.Date(winter23$`Registration Date`)
+
+winter23$`Account Deactivated`<- as.factor(winter23$`Account Deactivated`)
+
+sum(is.na(winter23$`Registration Date`)) 
+sum(is.na(winter23$`Account Deactivated`)) 
+
+```
+
+```{r}
+colnames(winter23)[13]  <- "Appointment Date" 
+
+winter23$`Appointment Date` <- as.Date(winter23$`Appointment Date`)
+
+sum(is.na(winter23$`Appointment Date`)) 
+```
+
+Cleaning Team Column and Dropping NA's:
+
+```{r}
+winter23$Team <- ifelse(winter23$Team == "Mens Cross Country - Track & Field", "Men's Cross Country - Track & Field", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Womens Cross Country - Track & Field", "Women's Cross Country - Track & Field", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Mens Swim & Dive", "Men's Swim & Dive", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Mens Tennis", "Men's Tennis", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Womens Basketball", "Women's Basketball", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Womens Golf", "Women's Golf", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Womens Soccer", "Women's Soccer", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Womens Swim & Dive", "Women's Swim & Dive", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Womens Tennis", "Women's Tennis", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Mens Basketball", "Men's Basketball", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Mens Soccer", "Men's Soccer", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Mens Golf", "Men's Golf", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Mens Swim & Dive", "Men's Swim & Dive", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Mens Swim & Drive", "Men's Swim & Dive", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Men's Swim & Drive", "Men's Swim & Dive", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Baseball", "Men's Baseball", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Football", "Men's Football", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Softball", "Women's Softball", winter23$Team)
+winter23$Team <- ifelse(winter23$Team == "Wrestling", "Men's Wrestling", winter23$Team)
+
+winter23$Team <- ifelse(winter23$Team == "N/A", NA, winter23$Team)  
+
+table(winter23$Team)
+
+sum(is.na(winter23$Team)) 
+```
+
+Exploring year column:
+
+```{r}
+table(winter23$`In what year are you at Cal Poly? (R2)`)
+```
+
+Cleaning and organizing year column:
+
+```{r}
+winter23$Year <- ifelse(winter23$`In what year are you at Cal Poly? (R2)` %in% c("First-time First Year", "First-time Freshman"), "First Year", winter23$`In what year are you at Cal Poly? (R2)` )
+
+table(winter23$Year)
+
+winter23$Year <- as.factor(winter23$Year)
+
+sum(is.na(winter23$`Registration Date`)) 
+```
+
+Dropping raw year column (replaced by clean year column):
+
+```{r}
+winter23 = subset(winter23, select = -c(`In what year are you at Cal Poly? (R2)`) )
+```
+
+Rearranging year column:
+
+```{r}
+winter23 <- winter23 %>% relocate(Year, .after=`Registration Date`)
+```
+
+Renaming and cleaning college column :
+
+```{r}
+colnames(winter23)[7]  <- "College" 
+```
+
+```{r}
+table(winter23$College)
+
+winter23$College <- ifelse(winter23$College == "N/A", NA, winter23$College) 
+
+sum(is.na(winter23$College)) # Has NA's
+```
+
+Cleaning Major Column:
+
+```{r}
+# Art and Design
+winter23$`What is your major? (R5)` <- ifelse(grepl("design", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Art and Design", winter23$`What is your major? (R5)`)
+
+# Aerospace Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("aerospace eng", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Aerospace Engineering", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("AERO", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Aerospace Engineering", winter23$`What is your major? (R5)`)
+
+# Business Administration
+winter23$`What is your major? (R5)` <- ifelse(grepl("Ag Bus", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Business", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Ag Buisness", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Business", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("AGB", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Business", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Agribusiness", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Business", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Agriculture Business", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Business", winter23$`What is your major? (R5)`)
+
+# Agricultural Communication
+winter23$`What is your major? (R5)` <- ifelse(grepl("Agricultural Communication", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Communication", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Agriculture Communication", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Communication", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Ag Comms", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Communication", winter23$`What is your major? (R5)`)
+
+# Agricultural Systems Management
+winter23$`What is your major? (R5)` <- ifelse(grepl("ag systems management", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Systems Management", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Agriculture Systems Management", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Systems Management", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("ASM", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Agricultural Systems Management", winter23$`What is your major? (R5)`)
+
+# Animal Science
+winter23$`What is your major? (R5)` <- ifelse(grepl("animal science", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Animal Science", winter23$`What is your major? (R5)`)
+
+# Anthropology & Geology
+winter23$`What is your major? (R5)` <- ifelse(grepl("anthropology", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Anthropology and Geology", winter23$`What is your major? (R5)`)
+
+# Architectural Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("architectural engineering", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Architectural Engineering", winter23$`What is your major? (R5)`)
+
+# Architecture
+winter23$`What is your major? (R5)` <- ifelse(grepl("ARCH", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Architecture", winter23$`What is your major? (R5)`)
+
+# Biochemistry
+winter23$`What is your major? (R5)` <- ifelse(grepl("biochemistry", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Biochemistry", winter23$`What is your major? (R5)`)
+
+# Biology
+winter23$`What is your major? (R5)` <- ifelse(grepl("biolo", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Biological Sciences", winter23$`What is your major? (R5)`)
+
+# Biomedical Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("biomedical engineering", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Biomedical Engineering", winter23$`What is your major? (R5)`)
+
+#BioResource and Agricultural Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("Bioresource and Agricultural Engineering", winter23$`What is your major? (R5)`, ignore.case = TRUE), "BioResource and Agricultural Engineering", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("BRAE", winter23$`What is your major? (R5)`, ignore.case = TRUE), "BioResource and Agricultural Engineering", winter23$`What is your major? (R5)`)
+
+# Business Administration
+winter23$`What is your major? (R5)` <- ifelse(grepl("Business", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Business Administration", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Buis", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Business Administration", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Business", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Business Administration", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Buisness", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Business Administration", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Busniness", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Business Administration", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Bussiness", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Business Administration", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("BUS", winter23$`What is your major? (R5)`, ignore.case = FALSE), "Business Administration", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("financ", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Business Administration", winter23$`What is your major? (R5)`)
+
+# Chemistry
+winter23$`What is your major? (R5)` <- ifelse(grepl("Chemistry", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Chemistry", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(winter23$`What is your major? (R5)` == "chem", "Chemistry", winter23$`What is your major? (R5)`)
+
+# Child Development
+winter23$`What is your major? (R5)` <- ifelse(grepl("Child Development", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Child Development", winter23$`What is your major? (R5)`)
+
+# City and Regional Planning
+winter23$`What is your major? (R5)` <- ifelse(grepl("Regional Planning", winter23$`What is your major? (R5)`, ignore.case = TRUE), "City and Regional Planning", winter23$`What is your major? (R5)`)
+
+# Civil Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("civil engin", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Civil Engineering", winter23$`What is your major? (R5)`)
+
+# Communication Studies
+winter23$`What is your major? (R5)` <- ifelse(grepl("communication", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Communication Studies", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("comms", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Communication Studies", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(winter23$`What is your major? (R5)` == "coms", "Communication Studies", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(winter23$`What is your major? (R5)` == "Coms", "Communication Studies", winter23$`What is your major? (R5)`)
+
+# Computer Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("computer engin", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Computer Engineering", winter23$`What is your major? (R5)`)
+
+# Computer Science
+winter23$`What is your major? (R5)` <- ifelse(grepl("Computer science", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Computer Science", winter23$`What is your major? (R5)`)
+
+# Construction Management
+winter23$`What is your major? (R5)` <- ifelse(winter23$`What is your major? (R5)` == "CM", "Construction Management", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("Const", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Construction Management", winter23$`What is your major? (R5)`)
+
+# Economics
+winter23$`What is your major? (R5)` <- ifelse(grepl("economic", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Economics", winter23$`What is your major? (R5)`)
+
+# Electrical Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("electrical", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Electrical Engineering", winter23$`What is your major? (R5)`)
+
+# English
+winter23$`What is your major? (R5)` <- ifelse(grepl("English", winter23$`What is your major? (R5)`, ignore.case = TRUE), "English", winter23$`What is your major? (R5)`)
+
+# Environmental Management and Protection
+winter23$`What is your major? (R5)` <- ifelse(grepl("protection", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Environmental Management and Protection", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(winter23$`What is your major? (R5)` == "ENVM", "Environmental Management and Protection", winter23$`What is your major? (R5)`)
+
+# Environmental Earth and Soil Sciences
+winter23$`What is your major? (R5)` <- ifelse(grepl("soil", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Environmental Earth and Soil Sciences", winter23$`What is your major? (R5)`)
+
+# Environmental Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("Environmental Engineering", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Environmental Engineering", winter23$`What is your major? (R5)`)
+
+# Forest and Fire Sciences
+winter23$`What is your major? (R5)` <- ifelse(grepl("forest", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Forest and Fire Sciences", winter23$`What is your major? (R5)`)
+
+# General Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("general", winter23$`What is your major? (R5)`, ignore.case = TRUE), "General Engineering", winter23$`What is your major? (R5)`)
+
+# Graphic Communications
+winter23$`What is your major? (R5)` <- ifelse(grepl("graphic", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Graphic Communications", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("grc", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Graphic Communications", winter23$`What is your major? (R5)`)
+
+# Industrial Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("industrial engineering", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Industrial Engineering", winter23$`What is your major? (R5)`)
+
+# Industrial Technology and Packaging
+winter23$`What is your major? (R5)` <- ifelse(grepl("packaging", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Industrial Technology and Packaging", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("itp", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Industrial Technology and Packaging", winter23$`What is your major? (R5)`)
+
+# Journalism
+winter23$`What is your major? (R5)` <- ifelse(grepl("journalism", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Journalism", winter23$`What is your major? (R5)`)
+
+# Kinesiology
+winter23$`What is your major? (R5)` <- ifelse(grepl("kin", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Kinesiology", winter23$`What is your major? (R5)`)
+
+# Liberal Arts and Engineering Studies
+winter23$`What is your major? (R5)` <- ifelse(grepl("LAES", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Liberal Arts and Engineering Studies", winter23$`What is your major? (R5)`)
+
+# Liberal Studies
+winter23$`What is your major? (R5)` <- ifelse(grepl("Liberal Studies", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Liberal Studies", winter23$`What is your major? (R5)`)
+
+# Marine Sciences
+winter23$`What is your major? (R5)` <- ifelse(grepl("Marine Science", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Marine Sciences", winter23$`What is your major? (R5)`)
+
+# Materials Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("material", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Materials Engineering", winter23$`What is your major? (R5)`)
+
+# Mathematics
+winter23$`What is your major? (R5)` <- ifelse(grepl("math", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Mathematics", winter23$`What is your major? (R5)`)
+
+# Mechanical Engineering
+winter23$`What is your major? (R5)` <- ifelse(grepl("mechanical", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Mechanical Engineering", winter23$`What is your major? (R5)`)
+
+# Nutrition
+winter23$`What is your major? (R5)` <- ifelse(grepl("nutrition", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Nutrition", winter23$`What is your major? (R5)`)
+
+# Philosophy
+winter23$`What is your major? (R5)` <- ifelse(grepl("philosophy", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Philosophy", winter23$`What is your major? (R5)`)
+
+# Recreation, Parks, and Tourism Administration
+winter23$`What is your major? (R5)` <- ifelse(grepl("park", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Recreation, Parks, and Tourism Administration", winter23$`What is your major? (R5)`)
+
+winter23$`What is your major? (R5)` <- ifelse(grepl("rpta", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Recreation, Parks, and Tourism Administration", winter23$`What is your major? (R5)`)
+
+# Political Science
+winter23$`What is your major? (R5)` <- ifelse(grepl("political", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Political Science", winter23$`What is your major? (R5)`)
+
+# Psychology
+winter23$`What is your major? (R5)` <- ifelse(grepl("psychology", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Psychology", winter23$`What is your major? (R5)`)
+
+# Plant Sciences
+winter23$`What is your major? (R5)` <- ifelse(grepl("plant", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Plant Sciences", winter23$`What is your major? (R5)`)
+
+# Sociology
+winter23$`What is your major? (R5)` <- ifelse(grepl("soc", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Sociology", winter23$`What is your major? (R5)`)
+
+# Wine and Viticulture
+winter23$`What is your major? (R5)` <- ifelse(grepl("vit", winter23$`What is your major? (R5)`, ignore.case = TRUE), "Wine and Viticulture", winter23$`What is your major? (R5)`)
+```
+
+```{r}
+majors <- c("Aerospace Engineering", "Agricultural Business", "Agricultural Communication", "Agricultural Science", "Agricultural Systems Management", "Animal Science", "Anthropology and Geography", "Architectural Engineering", "Architecture", "Art and Design", "Biochemistry", "Biological Sciences", "Biomedical Engineering","BioResource and Agricultural Engineering", "Business Administration", "Chemistry", "Child Development", "City and Regional Planning", "Civil Engineering", "Communication Studies", "Comparative Ethnic Studies", "Computer Engineering", "Computer Science", "Construction Management", "Dairy Science", "Economics", "Electrical Engineering", "English", "Environmental Earth and Soil Sciences", "Environmental Engineering", "Environmental Management and Protection", "Food Science", "Forest and Fire Sciences", "General Engineering", "Graphic Communications", "History", "Industrial Engineering", "Industrial Technology and Packaging", "Interdisciplinary Studies", "Journalism", "Kinesiology", "Landscape Architecture", "Liberal Arts and Engineering Studies", "Liberal Studies", "Manufacturing Engineering", "Marine Sciences", "Materials Engineering", "Mathematics", "Mechanical Engineering", "Microbiology", "Music", "Nutrition", "Philosophy", "Physics", "Plant Sciences", "Political Science", "Public Health", "Psychology", "Recreation, Parks, and Tourism Administration", "Sociology", "Software Engineering", "Spanish", "Statistics", "Theatre Arts", "Wine and Viticulture")
+
+
+winter23$`What is your major? (R5)` <- ifelse(winter23$`What is your major? (R5)` %in% majors, winter23$`What is your major? (R5)`, NA)
+
+colnames(winter23)[8]  <- "Major"
+
+table(winter23$Major)
+
+sum(is.na(winter23$Major)) #Has NA's
+
+
+```
+
+
+Cleaning First Language Column:
+
+```{r}
+colnames(winter23)[9]  <- "First Language" 
+
+table(winter23$`First Language`)
+
+winter23$`First Language` <- as.factor(winter23$`First Language`)
+
+sum(is.na(winter23$`First Language`)) # Has NA's
+
+winter23$`First Language`[is.na(winter23$`First Language`)] = "Other"
+```
+
+Cleaning Virtual Consultation Column:
+
+```{r}
+colnames(winter23)[10]  <- "Virtual Consulation" 
+
+winter23$`Virtual Consulation` <- ifelse(winter23$`Virtual Consulation` %in% c("0", "No"), "No", winter23$`Virtual Consulation` )
+
+winter23$`Virtual Consulation` <- ifelse(winter23$`Virtual Consulation` %in% c("1", "Yes"), "Yes", winter23$`Virtual Consulation` )
+
+winter23$`Virtual Consulation` <- ifelse(is.na(winter23$`Virtual Consulation`), "No", winter23$`Virtual Consulation`)
+
+table(winter23$`Virtual Consulation`)
+
+winter23$`Virtual Consulation` <- as.factor(winter23$`Virtual Consulation`)
+```
+
+
+Cleaning Gender column
+
+```{r}
+colnames(winter23)[11]  <- "Gender" 
+
+table(winter23$Gender)
+
+winter23$Gender <- ifelse(winter23$Gender %in% c('He','He, Him, His', 'He, His, Him','he/him/his','He/Him/His','him'), 'Male', winter23$Gender) 
+
+winter23$Gender <- ifelse(winter23$Gender %in% c('Her','her, hers','she her hers','She her hers','she, her, hers','she/her/hers'), 'Female', winter23$Gender) 
+
+winter23$Gender <- ifelse(winter23$Gender %in% c('None','she/they','they/them/theirs'), 'Other', winter23$Gender) 
+
+sum(is.na(winter23$Gender)) #has NA's
+
+winter23$Gender <- ifelse(grepl("Women's",winter23$Team), "Female",
+                            ifelse(grepl("Volleyball", winter23$Team), "Female",
+                               ifelse(grepl("Men's",winter23$Team), "Male", NA)))
+
+winter23$Gender <- as.factor(winter23$Gender)
+```
+
+Exploring Staff or Resource column:
+
+```{r}
+table(winter23$`Staff or Resource (C)`)
+
+colnames(winter23)[12]  <- "Staff"
+```
+
+Cleaning Start Time column:
+
+```{r}
+colnames(winter23)[14]  <- "Start Time"
+
+winter23$`Start Time` <- strptime(winter23$`Start Time`, "%I:%M %p")
+
+# Convert to 24-hour time format
+winter23$`Start Time` <- format(winter23$`Start Time`, "%H:%M")
+
+```
+
+Cleaning End Time column:
+
+```{r}
+colnames(winter23)[15]  <- "End Time"
+
+winter23$`End Time` <- strptime(winter23$`End Time`, "%I:%M %p")
+
+# Convert to 24-hour time format
+winter23$`End Time` <- format(winter23$`End Time`, "%H:%M")
+
+```
+
+Cleaning Session Type column:
+
+```{r}
+colnames(winter23)[17]  <- "Session Type"
+
+winter23$`Session Type` <- ifelse(winter23$`Session Type` %in% c("ENGL 135", "ENGL 150"), "Other", winter23$`Session Type`)
+
+winter23$`Session Type` <- ifelse(winter23$`Session Type` %in% c("Athletics Tutoring"), "Recurring Visit", winter23$`Session Type`)
+
+winter23$`Session Type` <- ifelse(winter23$`Session Type` %in% c("Drop in"), "Single visit", winter23$`Session Type`)
+
+winter23$`Session Type` <- ifelse(winter23$`Session Type` %in% c("Signle visit"), "Single Visit", winter23$`Session Type`)
+
+table(winter23$`Session Type`)
+
+sum(is.na(winter23$`Session Type`))
+
+```
+
+Changing column names for Course, Goals, and Comments:
+
+```{r}
+colnames(winter23)[18]  <- "Course"
+
+colnames(winter23)[19]  <- "Location"
+
+colnames(winter23)[20]  <- "Session Goals"
+
+colnames(winter23)[21]  <- "Summary Emailed"
+
+colnames(winter23)[22]  <- "Comments"
+
+```
+
+```{r}
+winter23$`Summary Emailed` <- ifelse(is.na(winter23$`Summary Emailed`), "No", winter23$`Summary Emailed`)
+```
+
+## Subsetting Spring 2022 Quarter Results
+
+```{r}
+Spring_2022 <- winter23 %>% 
+  filter(`Appointment Date` >= as.Date('2022-3-27') & `Appointment Date` <= as.Date('2022-6-8'))
+  
+```
+
+### Fall 2022 Cleaninng 
+
+```{r}
+table(Spring_2022$Team)
+
+sum(is.na(Spring_2022$Team))
+
+Spring_2022 <- Fall_2022[complete.cases(Fall_2022$Team),]
+```
+
+Detcting NA's:
+
+```{r}
+sum(is.na(Spring_2022$`First Name`))
+sum(is.na(Spring_2022$`Last Name`))
+sum(is.na(Spring_2022$`Registration Date`))
+sum(is.na(Spring_2022$Year))
+sum(is.na(Spring_2022$`Administrative Notes`))
+sum(is.na(Spring_2022$`Account Deactivated`))
+sum(is.na(Spring_2022$College))
+sum(is.na(Spring_2022$Major))
+sum(is.na(Spring_2022$`First Language`))
+sum(is.na(Spring_2022$`Virtual Consulation`))
+sum(is.na(Spring_2022$Gender))
+sum(is.na(Spring_2022$Staff))
+sum(is.na(Spring_2022$`Appointment Date`))
+sum(is.na(Spring_2022$`Start Time`))
+sum(is.na(Spring_2022$`End Time`))
+sum(is.na(Spring_2022$`Length (Minutes)`))
+sum(is.na(Spring_2022$`Session Type`))
+sum(is.na(Spring_2022$Course))
+sum(is.na(Spring_2022$Location))
+sum(is.na(Spring_2022$`Session Goals`))
+sum(is.na(Spring_2022$`Summary Emailed`))
+sum(is.na(Spring_2022$Comments))
+
+```
+
+```{r}
+Count_by_Team <- count(Spring_2022, Team)
+Count_by_Team
+```
+
+
+Column Cleaning:
+
+```{r}
+Spring_2022$Course <- toupper(Spring_2022$Course)
+
+table(Spring_2022$Course)
+
+count(Spring_2022, Course)
+```
+
+```{r}
+Spring_2022$Location <- sub(".*-\\s*", "", Spring_2022$Location)
+
+Spring_2022$`Summary Emailed` <- ifelse(is.na(Spring_2022$`Summary Emailed`), "No", Spring_2022$`Summary Emailed`)
+
+```
+
+```{r}
+write.xlsx(Spring_2022, "output.xlsx", rowNames = TRUE)
+```
+
+## Subsetting Fall 2022 Quarter Results
+
+```{r}
+Fall_2022 <- winter23 %>% 
+  filter(`Appointment Date` >= as.Date('2022-9-12') & `Appointment Date` <= as.Date('2022-12-12'))
+  
+```
+
+### Fall 2022 Cleaninng 
+
+```{r}
+table(Fall_2022$Team)
+
+sum(is.na(Fall_2022$Team))
+
+Fall_2022 <- Fall_2022[complete.cases(Fall_2022$Team),]
+```
+
+Detcting NA's:
+
+```{r}
+sum(is.na(Fall_2022$`First Name`))
+sum(is.na(Fall_2022$`Last Name`))
+sum(is.na(Fall_2022$`Registration Date`))
+sum(is.na(Fall_2022$Year))
+sum(is.na(Fall_2022$`Administrative Notes`))
+sum(is.na(Fall_2022$`Account Deactivated`))
+sum(is.na(Fall_2022$College))
+sum(is.na(Fall_2022$Major))
+sum(is.na(Fall_2022$`First Language`))
+sum(is.na(Fall_2022$`Virtual Consulation`))
+sum(is.na(Fall_2022$Gender))
+sum(is.na(Fall_2022$Staff))
+sum(is.na(Fall_2022$`Appointment Date`))
+sum(is.na(Fall_2022$`Start Time`))
+sum(is.na(Fall_2022$`End Time`))
+sum(is.na(Fall_2022$`Length (Minutes)`))
+sum(is.na(Fall_2022$`Session Type`))
+sum(is.na(Fall_2022$Course))
+sum(is.na(Fall_2022$Location))
+sum(is.na(Fall_2022$`Session Goals`))
+sum(is.na(Fall_2022$`Summary Emailed`))
+sum(is.na(Fall_2022$Comments))
+
+```
+
+```{r}
+Count_by_Team <- count(Fall_2022, Team)
+Count_by_Team
+```
+
+
+Column Cleaning:
+
+```{r}
+Fall_2022$Course <- toupper(Fall_2022$Course)
+
+table(Fall_2022$Course)
+
+count(Fall_2022, Course)
+```
+
+```{r}
+Fall_2022$Location <- sub(".*-\\s*", "", Fall_2022$Location)
+
+Fall_2022$`Summary Emailed` <- ifelse(is.na(Fall_2022$`Summary Emailed`), "No", Fall_2022$`Summary Emailed`)
+
+```
+
+```{r}
+write.xlsx(Fall_2022, "output.xlsx", rowNames = TRUE)
+```
